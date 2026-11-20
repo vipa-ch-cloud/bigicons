@@ -19,6 +19,7 @@ import androidx.core.graphics.ColorUtils
 import dev.bigicons.app.model.ColorMode
 import dev.bigicons.app.model.Shape
 import dev.bigicons.app.model.StretchMode
+import dev.bigicons.app.model.ThemeVariant
 import dev.bigicons.app.model.WidgetConfig
 import kotlin.math.max
 import kotlin.math.min
@@ -41,7 +42,7 @@ object IconRenderer {
     )
 
     fun isNight(ctx: Context) =
-        (ctx.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+        (ctx.applicationContext.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
 
     /** AUTO: тематическая, если Android 13+ и у приложения есть monochrome-слой. */
     fun resolveMode(cfg: WidgetConfig, src: IconSource): ColorMode = when (cfg.colorMode) {
@@ -50,24 +51,27 @@ object IconRenderer {
         else -> cfg.colorMode
     }
 
-    private fun palette(ctx: Context, mode: ColorMode, custom: Int, night: Boolean): Palette? = when (mode) {
+    private fun palette(ctx: Context, mode: ColorMode, custom: Int, night: Boolean, variant: ThemeVariant): Palette? = when (mode) {
         ColorMode.ORIGINAL, ColorMode.AUTO -> null
         ColorMode.CUSTOM -> Palette(
             custom,
             if (ColorUtils.calculateLuminance(custom) > 0.5) 0xFF1B1B1F.toInt() else Color.WHITE,
         )
-        ColorMode.THEMED -> themed(ctx, night)
+        ColorMode.THEMED -> themed(ctx, night, variant)
     }
 
-    /** Приближение к тематическим иконкам Pixel Launcher: акцентные тона системной палитры. */
-    private fun themed(ctx: Context, night: Boolean): Palette {
-        if (Build.VERSION.SDK_INT >= 31) {
-            return runCatching {
-                if (night) Palette(ctx.getColor(android.R.color.system_accent1_800), ctx.getColor(android.R.color.system_accent1_100))
-                else Palette(ctx.getColor(android.R.color.system_accent1_100), ctx.getColor(android.R.color.system_accent1_700))
-            }.getOrElse { fallbackTheme(night) }
-        }
-        return fallbackTheme(night)
+    /** Тематическая палитра Material You: тона выбирает [ThemeTones.pick], значения берутся у системы в момент рендера. */
+    private fun themed(ctx: Context, night: Boolean, variant: ThemeVariant): Palette {
+        val names = ThemeTones.pick(Build.VERSION.SDK_INT, night, variant) ?: return fallbackTheme(night)
+        return runCatching {
+            val res = ctx.applicationContext.resources
+            fun c(n: String): Int {
+                val id = res.getIdentifier(n, "color", "android")
+                require(id != 0)
+                return res.getColor(id, ctx.applicationContext.theme)
+            }
+            Palette(c(names.bg), c(names.glyph))
+        }.getOrElse { fallbackTheme(night) }
     }
 
     private fun fallbackTheme(night: Boolean) =
@@ -134,7 +138,7 @@ object IconRenderer {
             return bmp
         }
         val mode = resolveMode(cfg, src)
-        val pal = palette(ctx, mode, cfg.customColor, night)
+        val pal = palette(ctx, mode, cfg.customColor, night, cfg.themeVariant)
         val prep = prepare(src, mode, pal, night)
 
         val (cols, rows) = if (cfg.stretch == StretchMode.TILES) {
@@ -211,7 +215,7 @@ object IconRenderer {
     }
 
     private fun drawPlaceholder(ctx: Context, c: Canvas, cfg: WidgetConfig, w: Float, h: Float, night: Boolean) {
-        val pal = themed(ctx, night)
+        val pal = themed(ctx, night, cfg.themeVariant)
         val s = min(w, h)
         val rect = if (cfg.stretch == StretchMode.STRETCH) RectF(w * 0.03f, h * 0.03f, w * 0.97f, h * 0.97f)
         else RectF((w - s) / 2 + s * 0.03f, (h - s) / 2 + s * 0.03f, (w + s) / 2 - s * 0.03f, (h + s) / 2 - s * 0.03f)

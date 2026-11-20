@@ -67,6 +67,8 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        // пересчёт цветов при каждом открытии: акцент/обои/тема могли смениться без уведомления
+        WidgetUpdater.updateAll(this)
         tick.intValue++
     }
 }
@@ -166,6 +168,10 @@ private fun WidgetsScreen(tick: Int, refresh: () -> Unit) {
                 }
             }
         }
+        OutlinedButton(
+            onClick = { WidgetUpdater.updateAll(ctx); refresh() },
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+        ) { Text("Обновить все виджеты") }
         if (mgr.isRequestPinAppWidgetSupported) {
             ExtendedFloatingActionButton(
                 onClick = { dialog = true },

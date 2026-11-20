@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import dev.bigicons.app.model.ColorMode
 import dev.bigicons.app.model.Shape
 import dev.bigicons.app.model.StretchMode
+import dev.bigicons.app.model.ThemeVariant
 import dev.bigicons.app.model.WidgetConfig
 
 @Composable
@@ -74,11 +75,21 @@ fun StyleOptions(cfg: WidgetConfig, onChange: (WidgetConfig) -> Unit) {
             when (cfg.colorMode) {
                 ColorMode.AUTO -> "Тематическая (Material You), если у приложения есть monochrome-слой на Android 13+, иначе как есть."
                 ColorMode.ORIGINAL -> "Оригинальные цвета иконки."
-                ColorMode.THEMED -> "Фон и глиф из системной палитры. Без monochrome-слоя глиф строится из силуэта."
+                ColorMode.THEMED -> "Цвета берутся из системной палитры Material You (акцент из настроек обоев и стиля). Без monochrome-слоя глиф строится из силуэта."
                 ColorMode.CUSTOM -> "Одноцветный глиф на выбранном цвете."
             },
             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        if (cfg.colorMode == ColorMode.THEMED || cfg.colorMode == ColorMode.AUTO) {
+            Segments(ThemeVariant.entries, cfg.themeVariant, { it.title }) { onChange(cfg.copy(themeVariant = it)) }
+            Text(
+                when (cfg.themeVariant) {
+                    ThemeVariant.NEUTRAL -> "Как обычные плитки в системе: нейтральный фон из системной палитры."
+                    ThemeVariant.ACCENT -> "Как выделенная плитка: фон и глиф в цвете акцента."
+                },
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
         if (cfg.colorMode == ColorMode.CUSTOM) {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Swatches.forEach { col ->

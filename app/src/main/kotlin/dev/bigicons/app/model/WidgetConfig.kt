@@ -13,6 +13,10 @@ enum class ColorMode(val title: String) {
     AUTO("Авто"), ORIGINAL("Как есть"), THEMED("Тема"), CUSTOM("Свой цвет")
 }
 
+enum class ThemeVariant(val title: String) {
+    NEUTRAL("Нейтральная"), ACCENT("Акцент")
+}
+
 enum class StretchMode(val title: String) {
     CENTER("По центру"), STRETCH("Растянуть"), TILES("Плитки")
 }
@@ -23,6 +27,7 @@ data class WidgetConfig(
     val shape: Shape = Shape.AUTO,
     val colorMode: ColorMode = ColorMode.AUTO,
     val customColor: Int = 0xFF6750A4.toInt(),
+    val themeVariant: ThemeVariant = ThemeVariant.NEUTRAL,
     val stretch: StretchMode = StretchMode.STRETCH,
     val showLabel: Boolean = false,
     /** масштаб глифа, % */
@@ -36,6 +41,7 @@ data class WidgetConfig(
         put("shape", shape.name)
         put("colorMode", colorMode.name)
         put("customColor", customColor)
+        put("themeVariant", themeVariant.name)
         put("stretch", stretch.name)
         put("showLabel", showLabel)
         put("scale", scale)
@@ -57,6 +63,7 @@ data class WidgetConfig(
                     shape = j.enumOr("shape", d.shape),
                     colorMode = j.enumOr("colorMode", d.colorMode),
                     customColor = j.optInt("customColor", d.customColor),
+                    themeVariant = j.enumOr("themeVariant", d.themeVariant),
                     stretch = j.enumOr("stretch", d.stretch),
                     showLabel = j.optBoolean("showLabel", d.showLabel),
                     scale = j.optInt("scale", d.scale).coerceIn(40, 160),
