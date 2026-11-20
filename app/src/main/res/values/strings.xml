@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">BigIcons</string>
+    <string name="widget_desc">Увеличенная иконка приложения в стиле вашего лаунчера</string>
+    <string name="widget_label_1x1">Иконка 1×1</string>
+    <string name="widget_label_1x2">Иконка 1×2</string>
+    <string name="widget_label_2x1">Иконка 2×1</string>
+    <string name="widget_label_2x2">Иконка 2×2</string>
+    <string name="widget_label_2x3">Иконка 2×3</string>
+    <string name="widget_label_3x2">Иконка 3×2</string>
+    <string name="widget_label_3x3">Иконка 3×3</string>
+    <string name="widget_label_4x1">Иконка 4×1</string>
+    <string name="widget_label_1x4">Иконка 1×4</string>
+    <string name="widget_label_4x2">Иконка 4×2</string>
+    <string name="widget_label_4x3">Иконка 4×3</string>
+    <string name="widget_label_4x4">Иконка 4×4</string>
+</resources>
