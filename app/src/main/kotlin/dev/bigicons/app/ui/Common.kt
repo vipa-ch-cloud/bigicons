@@ -64,7 +64,7 @@ fun WidgetPreview(cfg: WidgetConfig, wDp: Int, hDp: Int, maxHeight: Dp = 180.dp,
     }
     Box(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp))
-            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+            .background(MaterialTheme.colorScheme.surfaceContainerHighest)
             .heightIn(min = 90.dp, max = maxHeight + 40.dp),
         contentAlignment = Alignment.Center,
     ) {

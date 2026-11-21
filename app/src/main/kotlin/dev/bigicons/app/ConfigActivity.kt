@@ -32,8 +32,6 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
@@ -57,6 +55,7 @@ import androidx.compose.ui.unit.dp
 import dev.bigicons.app.model.ConfigStore
 import dev.bigicons.app.model.WidgetConfig
 import dev.bigicons.app.render.IconSource
+import dev.bigicons.app.ui.AppCard
 import dev.bigicons.app.ui.AppEntry
 import dev.bigicons.app.ui.BigIconsTheme
 import dev.bigicons.app.ui.SectionTitle
@@ -162,6 +161,7 @@ private fun ConfigScreen(
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = { onDone(cfg) },
+                shape = MaterialTheme.shapes.large,
                 icon = { Icon(Icons.Filled.Check, null) },
                 text = { Text("Готово") },
             )
@@ -173,8 +173,8 @@ private fun ConfigScreen(
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             WidgetPreview(cfg, wDp, hDp, key = iconTick)
-            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            AppCard {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     SectionTitle("Приложение")
                     Text(appLabel ?: cfg.pkg ?: "Не выбрано", style = MaterialTheme.typography.titleMedium)
                     Button(onClick = { picking = true }, Modifier.fillMaxWidth()) { Text("Выбрать приложение") }
@@ -193,9 +193,7 @@ private fun ConfigScreen(
                     )
                 }
             }
-            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)) {
-                Column(Modifier.padding(16.dp)) { StyleOptions(cfg) { cfg = it } }
-            }
+            AppCard { StyleOptions(cfg) { cfg = it } }
         }
     }
 }

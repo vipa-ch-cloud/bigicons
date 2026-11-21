@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
@@ -40,7 +39,7 @@ fun SectionTitle(text: String) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun <T> Segments(items: List<T>, selected: T, title: (T) -> String, onSelect: (T) -> Unit) {
+fun <T> Segments(items: List<T>, selected: T?, title: (T) -> String, onSelect: (T) -> Unit) {
     SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
         items.forEachIndexed { i, it ->
             SegmentedButton(
@@ -64,10 +63,8 @@ private val Swatches = listOf(
 fun StyleOptions(cfg: WidgetConfig, onChange: (WidgetConfig) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         SectionTitle("Форма маски")
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Shape.entries.forEach { s ->
-                FilterChip(selected = cfg.shape == s, onClick = { onChange(cfg.copy(shape = s)) }, label = { Text(s.title) })
-            }
+        Shape.entries.chunked(3).forEach { row ->
+            Segments(row, cfg.shape.takeIf { it in row }, { it.title }) { onChange(cfg.copy(shape = it)) }
         }
         SectionTitle("Цвет иконки")
         Segments(ColorMode.entries, cfg.colorMode, { it.title }) { onChange(cfg.copy(colorMode = it)) }
