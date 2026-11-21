@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Превью (drawable/widget_preview_CxR, layout/widget_preview_CxR) лежат в репозитории и здесь не генерируются.
 # Генерирует провайдеры виджетов, XML и манифест. Запуск из корня проекта.
 set -e
 P=app/src/main; K=$P/kotlin/dev/bigicons/app
@@ -18,14 +19,17 @@ cat > $P/res/xml/widget_$s.xml <<EOF
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:minWidth="$((70*c-30))dp"
     android:minHeight="$((70*r-30))dp"
-    android:minResizeWidth="40dp"
-    android:minResizeHeight="40dp"
+    android:minResizeWidth="$((70*c-30))dp"
+    android:minResizeHeight="$((70*r-30))dp"
+    android:maxResizeWidth="250dp"
+    android:maxResizeHeight="250dp"
     android:targetCellWidth="$c"
     android:targetCellHeight="$r"
     android:resizeMode="horizontal|vertical"
     android:updatePeriodMillis="1800000"
     android:initialLayout="@layout/widget_icon"
-    android:previewImage="@drawable/widget_preview"
+    android:previewImage="@drawable/widget_preview_$s"
+    android:previewLayout="@layout/widget_preview_$s"
     android:configure="dev.bigicons.app.ConfigActivity"
     android:widgetCategory="home_screen"
     android:widgetFeatures="reconfigurable"

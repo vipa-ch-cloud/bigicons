@@ -11,16 +11,16 @@ import android.widget.Toast
  * Пустая строка = «ссылки пока нет»: кнопка будет неактивной или со значком «скоро».
  */
 object AppLinks {
-    /** Основной репозиторий BigIcons. Пока НЕ опубликован: ссылка на будущее. */
-    const val REPO = "https://github.com/vipa-ch-cloud/BigIcons"
-    const val REPO_PUBLISHED = false
+    /** Основной репозиторий BigIcons. */
+    const val REPO = "https://github.com/vipa-ch-cloud/bigicons"
+    const val REPO_PUBLISHED = true
 
     /** Источник стиля интерфейса (GPLv3). */
     const val TG_WS_PROXY_ANDROID = "https://github.com/amurcanov/tg-ws-proxy-android"
 
     /** Другие проекты автора. */
     const val TGAUTO = "https://github.com/vipa-ch-cloud/TgAuto"
-    const val LMLAPK = "" // TODO: подставить URL репозитория LMLAPK, когда он появится
+    const val ASCIIWALL = "https://github.com/vipa-ch-cloud/AsciiWall"
 
     /** Поддержка автора. Реальные ссылки на платёжные сервисы сюда подставляет автор. */
     const val DONATE_ALERTS = "" // TODO: ссылка DonationAlerts

@@ -8,17 +8,17 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
+import androidx.compose.material3.Surface
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.Modifier
 import androidx.compose.material3.Typography
-import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.TextStyle
@@ -29,14 +29,26 @@ import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
 
 /**
- * Настройки внешнего вида самого приложения (не иконок-виджетов).
- * Хранятся в SharedPreferences, состояние наблюдаемое: переключатель в «Стиле» сразу перекрашивает UI.
+ * Настройки внешнего вида самого приложения (не иконок-виджетов), как в TgAuto:
+ * режим (система/светлая/тёмная), палитра и переключатель Material You.
+ * Состояние наблюдаемое: изменение сразу перекрашивает UI.
  */
 object UiPrefs {
     private const val FILE = "ui_prefs"
     private const val KEY_DYNAMIC = "app_dynamic_colors"
+    private const val KEY_MODE = "theme_mode"
+    private const val KEY_PALETTE = "palette"
 
-    /** true = Material You, false = «Классика» (лавандовая палитра). */
+    const val MODE_SYSTEM = "system"
+    const val MODE_LIGHT = "light"
+    const val MODE_DARK = "dark"
+    val modes = listOf(MODE_SYSTEM, MODE_LIGHT, MODE_DARK)
+
+    var themeMode by mutableStateOf(MODE_SYSTEM)
+        private set
+    var palette by mutableStateOf(Palettes.INDIGO)
+        private set
+    /** true = цвета из обоев (Android 12+). По умолчанию включено там, где поддерживается. */
     var dynamicColors by mutableStateOf(false)
         private set
     private var loaded = false
@@ -44,13 +56,18 @@ object UiPrefs {
     fun load(ctx: Context) {
         if (loaded) return
         loaded = true
-        dynamicColors = ctx.getSharedPreferences(FILE, Context.MODE_PRIVATE).getBoolean(KEY_DYNAMIC, false)
+        val p = ctx.getSharedPreferences(FILE, Context.MODE_PRIVATE)
+        themeMode = p.getString(KEY_MODE, MODE_SYSTEM) ?: MODE_SYSTEM
+        palette = p.getString(KEY_PALETTE, Palettes.INDIGO) ?: Palettes.INDIGO
+        dynamicColors = p.getBoolean(KEY_DYNAMIC, dynamicSupported)
     }
 
-    fun setDynamic(ctx: Context, value: Boolean) {
-        dynamicColors = value
-        ctx.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit().putBoolean(KEY_DYNAMIC, value).apply()
-    }
+    private fun edit(ctx: Context, f: android.content.SharedPreferences.Editor.() -> Unit) =
+        ctx.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit().apply(f).apply()
+
+    fun setThemeMode(ctx: Context, v: String) { themeMode = v; edit(ctx) { putString(KEY_MODE, v) } }
+    fun setPalette(ctx: Context, v: String) { palette = v; edit(ctx) { putString(KEY_PALETTE, v) } }
+    fun setDynamic(ctx: Context, v: Boolean) { dynamicColors = v; edit(ctx) { putBoolean(KEY_DYNAMIC, v) } }
 
     val dynamicSupported: Boolean get() = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
 }
@@ -78,42 +95,19 @@ private val AppShapes = Shapes(
     extraLarge = RoundedCornerShape(32.dp),
 )
 
-// Классика: лавандовая палитра в духе TgWsProxyAndroid / TgAuto.
-private val ClassicLight = lightColorScheme(
-    primary = Color(0xFF5B588D), onPrimary = Color.White,
-    primaryContainer = Color(0xFFE2DFFF), onPrimaryContainer = Color(0xFF1A1744),
-    secondary = Color(0xFF5B588D), onSecondary = Color.White,
-    secondaryContainer = Color(0xFFE2DFFF), onSecondaryContainer = Color(0xFF1A1744),
-    background = Color(0xFFFBF8FF), onBackground = Color(0xFF1B1B1F),
-    surface = Color(0xFFF6F3FA), onSurface = Color(0xFF1B1B1F),
-    surfaceVariant = Color(0xFFE4E1EC), onSurfaceVariant = Color(0xFF47464F),
-    surfaceContainerLow = Color(0xFFF3F0F8), surfaceContainer = Color(0xFFEFECF4),
-    surfaceContainerHigh = Color(0xFFE9E6EF), surfaceContainerHighest = Color(0xFFE4E1E9),
-    outline = Color(0xFF787680), outlineVariant = Color(0xFFC8C5D0),
-)
-
-private val ClassicDark = darkColorScheme(
-    primary = Color(0xFFC4C0FF), onPrimary = Color(0xFF2D2A5B),
-    primaryContainer = Color(0xFF434073), onPrimaryContainer = Color(0xFFE2DFFF),
-    secondary = Color(0xFFC4C0FF), onSecondary = Color(0xFF2D2A5B),
-    secondaryContainer = Color(0xFF434073), onSecondaryContainer = Color(0xFFE2DFFF),
-    background = Color(0xFF131316), onBackground = Color(0xFFE4E1E6),
-    surface = Color(0xFF1B1B1F), onSurface = Color(0xFFC8C5D0),
-    surfaceVariant = Color(0xFF47464F), onSurfaceVariant = Color(0xFFC8C5D0),
-    surfaceContainerLow = Color(0xFF1B1B1F), surfaceContainer = Color(0xFF1F1F23),
-    surfaceContainerHigh = Color(0xFF2A2A2E), surfaceContainerHighest = Color(0xFF353539),
-    outline = Color(0xFF918F9A), outlineVariant = Color(0xFF47464F),
-)
-
 @Composable
 fun BigIconsTheme(content: @Composable () -> Unit) {
     val ctx = LocalContext.current
     UiPrefs.load(ctx)
-    val dark = isSystemInDarkTheme()
+    val dark = when (UiPrefs.themeMode) {
+        UiPrefs.MODE_LIGHT -> false
+        UiPrefs.MODE_DARK -> true
+        else -> isSystemInDarkTheme()
+    }
     val scheme: ColorScheme = when {
         UiPrefs.dynamicColors && UiPrefs.dynamicSupported ->
             if (dark) dynamicDarkColorScheme(ctx) else dynamicLightColorScheme(ctx)
-        else -> if (dark) ClassicDark else ClassicLight
+        else -> Palettes.scheme(UiPrefs.palette, dark)
     }
     val view = LocalView.current
     if (!view.isInEditMode) {
@@ -125,5 +119,9 @@ fun BigIconsTheme(content: @Composable () -> Unit) {
             }
         }
     }
-    MaterialTheme(colorScheme = scheme, typography = AppTypography, shapes = AppShapes, content = content)
+    MaterialTheme(colorScheme = scheme, typography = AppTypography, shapes = AppShapes) {
+        // Корень темы: Surface задаёт LocalContentColor = onBackground. Без него Text вне Surface/Scaffold
+        // рисуется чёрным (LocalContentColor по умолчанию) и пропадает на тёмных палитрах.
+        Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background, contentColor = MaterialTheme.colorScheme.onBackground, content = content)
+    }
 }

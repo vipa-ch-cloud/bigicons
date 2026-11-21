@@ -1,5 +1,6 @@
 package dev.bigicons.app.ui
 
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -123,3 +124,21 @@ fun PillNavigationBar(items: List<NavItem>, selected: Int, onSelect: (Int) -> Un
 /** Цвет-подложка под иконку в карточках. */
 @Composable
 fun accentContainer(): Color = MaterialTheme.colorScheme.primaryContainer
+
+/** Фоновые «шары» цвета палитры (как в TgAuto): мягкое свечение за контентом. */
+@Composable
+fun AppBackdrop() {
+    val c = MaterialTheme.colorScheme
+    val dark = isDarkScheme()
+    val a = if (dark) 0.22f else 0.30f
+    androidx.compose.foundation.Canvas(Modifier.fillMaxSize()) {
+        drawCircle(
+            androidx.compose.ui.graphics.Brush.radialGradient(listOf(c.primaryContainer.copy(alpha = a), Color.Transparent), Offset(size.width * 0.9f, size.height * 0.05f), size.width * 0.7f),
+            radius = size.width * 0.7f, center = Offset(size.width * 0.9f, size.height * 0.05f),
+        )
+        drawCircle(
+            androidx.compose.ui.graphics.Brush.radialGradient(listOf(c.secondaryContainer.copy(alpha = a), Color.Transparent), Offset(size.width * 0.05f, size.height * 0.85f), size.width * 0.8f),
+            radius = size.width * 0.8f, center = Offset(size.width * 0.05f, size.height * 0.85f),
+        )
+    }
+}

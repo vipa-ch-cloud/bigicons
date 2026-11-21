@@ -152,6 +152,8 @@ private fun ConfigScreen(
     }
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
+        contentColor = MaterialTheme.colorScheme.onBackground,
         topBar = {
             TopAppBar(
                 title = { Text("Настройка виджета") },
@@ -205,7 +207,7 @@ private fun AppPicker(onPick: (String) -> Unit, onBack: () -> Unit) {
     var apps by remember { mutableStateOf<List<AppEntry>?>(null) }
     var query by remember { mutableStateOf("") }
     LaunchedEffect(Unit) { apps = loadApps(ctx) }
-    Scaffold(topBar = {
+    Scaffold(containerColor = MaterialTheme.colorScheme.background, contentColor = MaterialTheme.colorScheme.onBackground, topBar = {
         TopAppBar(
             title = { Text("Выбор приложения") },
             navigationIcon = { IconButton(onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Назад") } },

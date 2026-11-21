@@ -36,6 +36,7 @@ import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -51,6 +52,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import dev.bigicons.app.model.ConfigStore
 import dev.bigicons.app.render.IconSource
+import dev.bigicons.app.ui.AppBackdrop
 import dev.bigicons.app.ui.AppCard
 import dev.bigicons.app.ui.BigIconsTheme
 import dev.bigicons.app.ui.InfoScreen
@@ -60,6 +62,7 @@ import dev.bigicons.app.ui.Segments
 import dev.bigicons.app.ui.SectionTitle
 import dev.bigicons.app.ui.StyleOptions
 import dev.bigicons.app.ui.UiPrefs
+import dev.bigicons.app.ui.Palettes
 import dev.bigicons.app.ui.WidgetPreview
 import dev.bigicons.app.widget.WidgetUpdater
 
@@ -89,6 +92,7 @@ private fun MainScreen(tick: Int, refresh: () -> Unit) {
         listOf(NavItem("Виджеты", Icons.Filled.Home), NavItem("Стиль", Icons.Filled.Settings), NavItem("Инфо", Icons.Filled.Info))
     }
     Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+        AppBackdrop()
         Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal))) {
             Text(
                 items[tab].label, style = MaterialTheme.typography.headlineSmall,
@@ -205,12 +209,21 @@ private fun StyleScreen() {
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         AppCard {
-            SectionTitle("Цвета приложения")
-            val modes = if (UiPrefs.dynamicSupported) listOf(false, true) else listOf(false)
-            Segments(modes, UiPrefs.dynamicColors, { if (it) "Material You" else "Классика" }) { UiPrefs.setDynamic(ctx, it) }
+            SectionTitle("Оформление приложения")
+            Segments(UiPrefs.modes, UiPrefs.themeMode, { when (it) { UiPrefs.MODE_LIGHT -> "Светлая"; UiPrefs.MODE_DARK -> "Тёмная"; else -> "Система" } }) { UiPrefs.setThemeMode(ctx, it) }
+            val useDynamic = UiPrefs.dynamicColors && UiPrefs.dynamicSupported
+            if (UiPrefs.dynamicSupported) {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text("Material You (цвета обоев)", Modifier.weight(1f))
+                    Switch(UiPrefs.dynamicColors, { UiPrefs.setDynamic(ctx, it) })
+                }
+            }
+            if (!useDynamic) {
+                Segments(Palettes.all.map { it.first }, UiPrefs.palette, { id -> Palettes.all.first { it.first == id }.second }) { UiPrefs.setPalette(ctx, it) }
+            }
             Text(
-                if (UiPrefs.dynamicSupported) "Классика: лавандовая палитра. Material You: цвета берутся из обоев (Android 12+). На виджеты-иконки это не влияет."
-                else "Material You доступен с Android 12. Используется лавандовая палитра.",
+                if (useDynamic) "Цвета берутся из обоев (Android 12+). Чтобы выбрать палитру, выключите Material You."
+                else "Палитры «Цвет 1», «Эспрессо», «Цвет 2» есть в светлом и тёмном варианте. На виджеты-иконки это не влияет.",
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }

@@ -78,7 +78,7 @@ fun InfoScreen(bottomReserve: Dp) {
                 "4. Нажатие по виджету запускает приложение.", style = MaterialTheme.typography.bodyMedium)
             Muted("Лаунчер не сообщает форму своих иконок, поэтому «Как в системе» берёт системную маску. Итоговый размер виджета определяет лаунчер.")
             HorizontalDivider()
-            LinkRow("Репозиторий проекта", AppLinks.REPO + if (AppLinks.REPO_PUBLISHED) "" else " (запланирован, пока не опубликован)", AppLinks.REPO)
+            LinkRow("Репозиторий проекта", AppLinks.REPO, AppLinks.REPO)
         }
 
         AppCard {
@@ -115,7 +115,7 @@ fun InfoScreen(bottomReserve: Dp) {
         AppCard {
             Text("Другие проекты", style = MaterialTheme.typography.titleMedium)
             LinkRow("TgAuto", "Автоматизация Telegram-скриптами на Android", AppLinks.TGAUTO)
-            LinkRow("LMLAPK", "Проект автора", AppLinks.LMLAPK)
+            LinkRow("AsciiWall", "ASCII-обои и анимации", AppLinks.ASCIIWALL)
         }
     }
 }

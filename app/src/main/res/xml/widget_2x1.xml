@@ -1,15 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- 2x1 ячеек: minWidth/minHeight = 70n-30 dp (формула AOSP), targetCell* = n.
+     minResize равен размеру: лаунчер не должен считать виджет меньше заявленного.
+     maxResize = 4 ячейки: не ограничивает рост и не режет заявленный размер.
+     Превью с реальным соотношением сторон: previewImage (старые лаунчеры) и previewLayout (API 31+). -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:minWidth="110dp"
     android:minHeight="40dp"
-    android:minResizeWidth="40dp"
+    android:minResizeWidth="110dp"
     android:minResizeHeight="40dp"
+    android:maxResizeWidth="250dp"
+    android:maxResizeHeight="250dp"
     android:targetCellWidth="2"
     android:targetCellHeight="1"
     android:resizeMode="horizontal|vertical"
     android:updatePeriodMillis="1800000"
     android:initialLayout="@layout/widget_icon"
-    android:previewImage="@drawable/widget_preview"
+    android:previewImage="@drawable/widget_preview_2x1"
+    android:previewLayout="@layout/widget_preview_2x1"
     android:configure="dev.bigicons.app.ConfigActivity"
     android:widgetCategory="home_screen"
     android:widgetFeatures="reconfigurable"
