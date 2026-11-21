@@ -13,9 +13,11 @@
 - Главное приложение с нижней навигацией: «Виджеты» (список, править, сбросить, закрепить виджет нужного размера), «Стиль» (оформление приложения и значения по умолчанию), «Инфо».
 - Адаптивная иконка самого приложения с monochrome-слоем.
 
-## Интерфейс (v1.3)
+## Интерфейс (v1.4)
 
-Интерфейс целиком перенесён из TgAuto (собственный проект автора, GPL-3.0; TgAuto равняется на [TgWsProxyAndroid](https://github.com/amurcanov/tg-ws-proxy-android)): тема, палитры, карточки `AppCard`, сегмент-кнопки, нижняя навигация-«пилюля» `PillNavigationBar`, фоновые «шары» `AppBackdrop`, extended FAB, диалоги. Конфигуратор виджета в том же стиле и с тем же превью иконки. Вкладки: «Виджеты», «Стиль», «Инфо».
+В 1.4 интерфейс перенесён из TgAuto файл-в-файл (собственный проект автора, GPL-3.0; TgAuto равняется на [TgWsProxyAndroid](https://github.com/amurcanov/tg-ws-proxy-android)): `ui/Theme.kt` (типографика, `AppColors`, прозрачные системные бары, `fontScale = 1`), `ui/Components.kt` (`TabHeader`, `SectionHeader`, `SectionDivider`, `Hint`, `AppTextField`, `ChoiceButton`, `BigButton`, `StatusPill`, `SwitchRow`, `ChoiceRow`), `ui/AppSectionCard.kt`, `ui/Navigation.kt` (`PillNavigationBar` со свайпом между вкладками, `AppBackdrop` с тремя «шарами»), `ui/ConfigDialog.kt` (каркас `ConfigScaffold`, полноэкранные диалоги размера и выбора приложения). `MainActivity` использует `Scaffold`, `AnimatedContent` и жест свайпа, как в TgAuto. Конфигуратор виджета (`ConfigActivity`) собран на тех же компонентах и теме.
+
+Вкладки: «Виджеты» (структура ScriptsTab: список карточек со статусом и действиями, «Добавить виджет», «Обновить все»), «Стиль» (структура SettingsTab: секции-карточки с теми же контролами внешнего вида), «Инфо». Вкладки логов нет: в BigIcons нечего логировать. Всё про Telegram, скрипты и провайдеры не переносилось.
 
 - Темы (вкладка «Стиль», карточка «Оформление приложения»): режим «Система / Светлая / Тёмная», переключатель Material You (цвета обоев, Android 12+, по умолчанию включён там, где поддерживается) и три палитры «Цвет 1» (индиго), «Эспрессо», «Цвет 2» (лес), каждая в светлом и тёмном варианте: `ui/Palettes.kt`, `ui/Theme.kt` (`UiPrefs`). На цвета иконок-виджетов это не влияет.
 - Причина нечитаемого текста в 1.2: корень экрана был `Box(background)` без `Surface`, поэтому `LocalContentColor` оставался чёрным по умолчанию, и `Text` без явного цвета пропадал на тёмных палитрах. Исправлено: `BigIconsTheme` оборачивает всё в `Surface(color = background, contentColor = onBackground)`, а оба `Scaffold` конфигуратора получили явные `containerColor`/`contentColor`.
@@ -45,7 +47,7 @@
 ./gradlew test                # юнит-тесты (Layout, Monochrome, ThemeTones, PaletteContrast, WidgetProviders)
 ```
 
-Нужны Android SDK (путь в `local.properties`) и JDK 17+. Релиз собирается с R8 (shrink + resources). Подпись: отладочный ключ debug, без собственного keystore. Готовый файл: `dist/BigIcons-1.3.apk`.
+Нужны Android SDK (путь в `local.properties`) и JDK 17+. Релиз собирается с R8 (shrink + resources). Подпись: отладочный ключ debug, без собственного keystore. Готовый файл: `dist/BigIcons-1.4.apk`.
 
 Провайдеры, XML и манифест генерирует `tools/gen_widgets.sh` (запуск из корня проекта).
 

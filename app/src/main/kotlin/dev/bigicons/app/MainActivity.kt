@@ -7,64 +7,44 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.only
-import androidx.compose.foundation.layout.WindowInsetsSides
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawing
-import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Switch
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import dev.bigicons.app.model.ConfigStore
 import dev.bigicons.app.render.IconSource
-import dev.bigicons.app.ui.AppBackdrop
-import dev.bigicons.app.ui.AppCard
-import dev.bigicons.app.ui.BigIconsTheme
-import dev.bigicons.app.ui.InfoScreen
-import dev.bigicons.app.ui.NavItem
-import dev.bigicons.app.ui.PillNavigationBar
-import dev.bigicons.app.ui.Segments
-import dev.bigicons.app.ui.SectionTitle
-import dev.bigicons.app.ui.StyleOptions
-import dev.bigicons.app.ui.UiPrefs
-import dev.bigicons.app.ui.Palettes
-import dev.bigicons.app.ui.WidgetPreview
+import dev.bigicons.app.ui.*
 import dev.bigicons.app.widget.WidgetUpdater
+import kotlin.math.abs
 
 class MainActivity : ComponentActivity() {
     private val tick = mutableIntStateOf(0)
@@ -72,7 +52,16 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        setContent { BigIconsTheme { MainScreen(tick.intValue) { tick.intValue++ } } }
+        setContent {
+            BigIconsTheme {
+                Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+                    AppBackdrop(Modifier.matchParentSize())
+                    Surface(Modifier.fillMaxSize(), color = Color.Transparent) {
+                        MainContent(tick.intValue) { tick.intValue++ }
+                    }
+                }
+            }
+        }
     }
 
     override fun onResume() {
@@ -83,165 +72,212 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-private val NAV_RESERVE = 104.dp
-
 @Composable
-private fun MainScreen(tick: Int, refresh: () -> Unit) {
-    var tab by rememberSaveable { mutableIntStateOf(0) }
-    val items = remember {
-        listOf(NavItem("Виджеты", Icons.Filled.Home), NavItem("Стиль", Icons.Filled.Settings), NavItem("Инфо", Icons.Filled.Info))
+private fun MainContent(tick: Int, refresh: () -> Unit) {
+    var selectedTab by rememberSaveable { mutableIntStateOf(0) }
+    var dragTargetIndex by remember { mutableIntStateOf(-1) }
+    var dragProgress by remember { mutableFloatStateOf(0f) }
+    val density = LocalDensity.current
+    val navItems = remember {
+        listOf(NavItem("Виджеты", Icons.Default.Home), NavItem("Стиль", Icons.Default.Settings), NavItem("Инфо", Icons.Default.Info))
     }
-    Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-        AppBackdrop()
-        Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal))) {
-            Text(
-                items[tab].label, style = MaterialTheme.typography.headlineSmall,
-                modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 8.dp),
-            )
-            Box(Modifier.weight(1f)) {
-                when (tab) {
-                    0 -> WidgetsScreen(tick, refresh)
-                    1 -> StyleScreen()
-                    else -> InfoScreen(NAV_RESERVE)
+    val safeBottomInset = with(density) { WindowInsets.safeDrawing.getBottom(density).toDp() }
+    val navOverlayReserve = safeBottomInset + 96.dp
+
+    Scaffold(
+        contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top),
+        containerColor = Color.Transparent,
+    ) { padding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .consumeWindowInsets(padding)
+                .pointerInput(selectedTab) {
+                    var totalDrag = 0f
+                    detectHorizontalDragGestures(
+                        onDragStart = { totalDrag = 0f; dragTargetIndex = -1; dragProgress = 0f },
+                        onDragCancel = { dragTargetIndex = -1; dragProgress = 0f },
+                        onDragEnd = {
+                            if (dragTargetIndex in navItems.indices && dragProgress >= 0.5f) selectedTab = dragTargetIndex
+                            dragTargetIndex = -1
+                            dragProgress = 0f
+                        },
+                    ) { change, dragAmount ->
+                        change.consume()
+                        totalDrag += dragAmount
+                        if (abs(totalDrag) < 12f) {
+                            dragTargetIndex = -1; dragProgress = 0f
+                            return@detectHorizontalDragGestures
+                        }
+                        val candidate = if (totalDrag < 0f) selectedTab + 1 else selectedTab - 1
+                        if (candidate !in navItems.indices) {
+                            dragTargetIndex = -1; dragProgress = 0f
+                            return@detectHorizontalDragGestures
+                        }
+                        dragTargetIndex = candidate
+                        dragProgress = (abs(totalDrag) / 180f).coerceIn(0f, 1f)
+                    }
+                },
+        ) {
+            AnimatedContent(
+                targetState = selectedTab,
+                transitionSpec = { fadeIn(tween(300)) togetherWith fadeOut(tween(225)) },
+                modifier = Modifier.fillMaxSize().padding(bottom = navOverlayReserve),
+                label = "tab_content",
+            ) { page ->
+                when (page) {
+                    0 -> WidgetsTab(tick, refresh)
+                    1 -> StyleTab()
+                    else -> InfoScreen(16.dp)
                 }
             }
+            PillNavigationBar(
+                navItems = navItems,
+                selectedTab = selectedTab,
+                dragTargetIndex = dragTargetIndex,
+                dragProgress = dragProgress,
+                onTabSelected = { selectedTab = it; dragTargetIndex = -1; dragProgress = 0f },
+                modifier = Modifier.align(Alignment.BottomCenter),
+            )
         }
-        PillNavigationBar(items, tab, { tab = it }, Modifier.align(Alignment.BottomCenter))
     }
 }
 
+/** Вкладка «Виджеты» по структуре ScriptsTab из TgAuto: заголовок, карточки со статусом и действиями, добавление. */
 @Composable
-private fun WidgetsScreen(tick: Int, refresh: () -> Unit) {
+private fun WidgetsTab(tick: Int, refresh: () -> Unit) {
     val ctx = LocalContext.current
     val store = remember { ConfigStore(ctx) }
     val mgr = remember { AppWidgetManager.getInstance(ctx) }
     val ids = remember(tick) { WidgetUpdater.allIds(ctx) }
-    var dialog by remember { mutableStateOf(false) }
+    var sizeDialog by remember { mutableStateOf(false) }
+    val canPin = mgr.isRequestPinAppWidgetSupported
 
-    if (dialog) {
-        AlertDialog(
-            onDismissRequest = { dialog = false },
-            shape = MaterialTheme.shapes.extraLarge,
-            title = { Text("Размер виджета") },
-            text = {
-                Column(Modifier.verticalScroll(rememberScrollState())) {
-                    WidgetUpdater.SIZES.forEach { (c, r) ->
-                        TextButton(onClick = {
-                            dialog = false
-                            if (mgr.isRequestPinAppWidgetSupported) {
-                                mgr.requestPinAppWidget(ComponentName(ctx.packageName, WidgetUpdater.providerClass(c, r)), null, null)
-                            }
-                        }, Modifier.fillMaxWidth()) { Text("$c × $r") }
-                    }
-                }
+    if (sizeDialog) {
+        SizePickerDialog(
+            sizes = WidgetUpdater.SIZES.map { it.first to it.second },
+            onPick = { c, r ->
+                sizeDialog = false
+                mgr.requestPinAppWidget(ComponentName(ctx.packageName, WidgetUpdater.providerClass(c, r)), null, null)
             },
-            confirmButton = {},
-            dismissButton = { TextButton({ dialog = false }) { Text("Отмена") } },
+            onDismiss = { sizeDialog = false },
         )
     }
 
-    Box(Modifier.fillMaxSize()) {
-        if (ids.isEmpty()) {
-            Column(Modifier.padding(24.dp)) {
-                Text("Виджетов пока нет", style = MaterialTheme.typography.titleLarge)
-                Text(
-                    "Нажмите «Добавить виджет» или добавьте виджет BigIcons с главного экрана лаунчера.",
-                    Modifier.padding(top = 8.dp), color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        } else {
-            LazyColumn(
-                Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = NAV_RESERVE + 72.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp),
-            ) {
-                items(ids, key = { it }) { id ->
-                    val cfg = store.get(id) ?: store.defaults()
-                    val (w, h) = WidgetUpdater.sizeDp(ctx, mgr, id)
-                    AppCard {
-                        WidgetPreview(cfg, w, h, maxHeight = 120.dp, key = tick)
-                        Text(
-                            IconSource.appLabel(ctx, cfg.pkg) ?: if (cfg.customIcon != null) "Своя иконка" else "Не настроен",
-                            style = MaterialTheme.typography.titleMedium,
-                        )
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Button({
-                                ctx.startActivity(Intent(ctx, ConfigActivity::class.java)
-                                    .putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, id))
-                            }) { Text("Править") }
-                            OutlinedButton({
-                                store.put(id, store.defaults().copy(pkg = cfg.pkg))
-                                WidgetUpdater.update(ctx, mgr, id)
-                                refresh()
-                            }) { Text("Сбросить") }
-                        }
-                    }
-                }
-                item {
-                    OutlinedButton(
-                        onClick = { WidgetUpdater.updateAll(ctx); refresh() },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) { Text("Обновить все виджеты") }
-                }
+    LazyColumn(
+        modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+        contentPadding = PaddingValues(bottom = 16.dp),
+    ) {
+        item {
+            TabHeader("Виджеты") {
+                RefreshAction(ids.isNotEmpty()) { WidgetUpdater.updateAll(ctx); refresh() }
             }
         }
-        if (mgr.isRequestPinAppWidgetSupported) {
-            ExtendedFloatingActionButton(
-                onClick = { dialog = true },
-                icon = { Icon(Icons.Filled.Add, null) },
-                text = { Text("Добавить виджет") },
-                shape = MaterialTheme.shapes.large,
-                modifier = Modifier.align(Alignment.BottomEnd).padding(end = 20.dp, bottom = NAV_RESERVE),
-            )
+        if (canPin) item {
+            AppSectionCard {
+                SectionHeader(Icons.Default.Add, "Добавить виджет")
+                Hint("Выберите размер, и лаунчер предложит поставить виджет BigIcons на рабочий стол.")
+                BigButton("Добавить виджет", Icons.Default.Add, onClick = { sizeDialog = true })
+            }
+        }
+        if (ids.isEmpty()) item {
+            AppSectionCard {
+                SectionHeader(Icons.Default.Home, "Виджетов пока нет")
+                Hint(
+                    if (canPin) "Нажмите «Добавить виджет» или добавьте виджет BigIcons с главного экрана лаунчера."
+                    else "Добавьте виджет BigIcons с главного экрана лаунчера."
+                )
+            }
+        }
+        items(ids, key = { it }) { id ->
+            val cfg = store.get(id) ?: store.defaults()
+            val (w, h) = WidgetUpdater.sizeDp(ctx, mgr, id)
+            val configured = cfg.pkg != null || cfg.customIcon != null
+            AppSectionCard {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        IconSource.appLabel(ctx, cfg.pkg) ?: if (cfg.customIcon != null) "Своя иконка" else "Не настроен",
+                        style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f), maxLines = 1,
+                    )
+                    if (configured) StatusPill("Настроен", AppColors.ok()) else StatusPill("Не настроен", AppColors.warn())
+                }
+                WidgetPreview(cfg, w, h, maxHeight = 120.dp, key = tick)
+                Hint("Размер на экране: $w × $h dp")
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    BigButton("Править", Icons.Default.Settings, modifier = Modifier.weight(1f), onClick = {
+                        ctx.startActivity(Intent(ctx, ConfigActivity::class.java).putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, id))
+                    })
+                    BigButton("Сбросить", Icons.Default.Refresh, modifier = Modifier.weight(1f), danger = true, onClick = {
+                        store.put(id, store.defaults().copy(pkg = cfg.pkg))
+                        WidgetUpdater.update(ctx, mgr, id)
+                        refresh()
+                    })
+                }
+            }
         }
     }
 }
 
 @Composable
-private fun StyleScreen() {
+private fun RefreshAction(enabled: Boolean, onClick: () -> Unit) {
+    androidx.compose.material3.IconButton(onClick = onClick, enabled = enabled) {
+        androidx.compose.material3.Icon(Icons.Default.Refresh, contentDescription = "Обновить все виджеты", tint = MaterialTheme.colorScheme.primary)
+    }
+}
+
+/** Вкладка «Стиль» по структуре SettingsTab из TgAuto: секции-карточки с теми же контролами. */
+@Composable
+private fun StyleTab() {
     val ctx = LocalContext.current
     val store = remember { ConfigStore(ctx) }
     var cfg by remember { mutableStateOf(store.defaults()) }
     var applied by remember { mutableStateOf(false) }
     Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState())
-            .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = NAV_RESERVE + 16.dp),
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        AppCard {
-            SectionTitle("Оформление приложения")
-            Segments(UiPrefs.modes, UiPrefs.themeMode, { when (it) { UiPrefs.MODE_LIGHT -> "Светлая"; UiPrefs.MODE_DARK -> "Тёмная"; else -> "Система" } }) { UiPrefs.setThemeMode(ctx, it) }
+        TabHeader("Стиль")
+        AppSectionCard {
+            SectionHeader(Icons.Default.Settings, "Оформление приложения")
+            FieldLabel("Тема")
+            ChoiceRow(UiPrefs.modes, UiPrefs.themeMode, {
+                when (it) { UiPrefs.MODE_LIGHT -> "Светлая"; UiPrefs.MODE_DARK -> "Тёмная"; else -> "Система" }
+            }) { UiPrefs.setThemeMode(ctx, it) }
             val useDynamic = UiPrefs.dynamicColors && UiPrefs.dynamicSupported
             if (UiPrefs.dynamicSupported) {
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text("Material You (цвета обоев)", Modifier.weight(1f))
-                    Switch(UiPrefs.dynamicColors, { UiPrefs.setDynamic(ctx, it) })
-                }
+                SectionDivider()
+                SwitchRow("Material You", "Цвета берутся из обоев (Android 12+)", UiPrefs.dynamicColors) { UiPrefs.setDynamic(ctx, it) }
             }
             if (!useDynamic) {
-                Segments(Palettes.all.map { it.first }, UiPrefs.palette, { id -> Palettes.all.first { it.first == id }.second }) { UiPrefs.setPalette(ctx, it) }
+                SectionDivider()
+                FieldLabel("Палитра")
+                ChoiceRow(Palettes.all.map { it.first }, UiPrefs.palette, { id -> Palettes.all.first { it.first == id }.second }) {
+                    UiPrefs.setPalette(ctx, it)
+                }
+                Hint("Палитры «Цвет 1», «Эспрессо», «Цвет 2» есть в светлом и тёмном варианте. На виджеты-иконки это не влияет.")
+            } else {
+                Hint("Чтобы выбрать палитру, выключите Material You.")
             }
-            Text(
-                if (useDynamic) "Цвета берутся из обоев (Android 12+). Чтобы выбрать палитру, выключите Material You."
-                else "Палитры «Цвет 1», «Эспрессо», «Цвет 2» есть в светлом и тёмном варианте. На виджеты-иконки это не влияет.",
-                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
         }
-        Text(
-            "Стиль по умолчанию для новых виджетов.",
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = 8.dp),
-        )
+        Hint("Стиль по умолчанию для новых виджетов.")
         WidgetPreview(cfg, 140, 140, maxHeight = 140.dp)
-        AppCard { StyleOptions(cfg) { cfg = it; store.putDefaults(it); applied = false } }
-        OutlinedButton(onClick = {
-            val mgr = AppWidgetManager.getInstance(ctx)
-            WidgetUpdater.allIds(ctx).forEach { id ->
-                val old = store.get(id) ?: return@forEach
-                store.put(id, cfg.copy(pkg = old.pkg, customIcon = old.customIcon))
-                WidgetUpdater.update(ctx, mgr, id)
-            }
-            applied = true
-        }, Modifier.fillMaxWidth()) { Text(if (applied) "Применено" else "Применить ко всем виджетам") }
+        StyleSections(cfg) { cfg = it; store.putDefaults(it); applied = false }
+        AppSectionCard {
+            SectionHeader(Icons.Default.Check, "Применить к существующим")
+            Hint("Форма, цвет и размещение будут применены ко всем виджетам. Выбранные приложения и свои иконки сохранятся.")
+            BigButton(if (applied) "Применено" else "Применить ко всем виджетам", Icons.Default.Check, onClick = {
+                val mgr = AppWidgetManager.getInstance(ctx)
+                WidgetUpdater.allIds(ctx).forEach { id ->
+                    val old = store.get(id) ?: return@forEach
+                    store.put(id, cfg.copy(pkg = old.pkg, customIcon = old.customIcon))
+                    WidgetUpdater.update(ctx, mgr, id)
+                }
+                applied = true
+            })
+        }
+        Spacer(Modifier.height(8.dp))
     }
 }

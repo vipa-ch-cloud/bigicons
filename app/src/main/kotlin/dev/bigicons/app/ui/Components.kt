@@ -1,144 +1,183 @@
 package dev.bigicons.app.ui
 
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.animation.core.CubicBezierEasing
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.WindowInsetsSides
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.only
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawing
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.lerp
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import kotlin.math.abs
 
 @Composable
-private fun isDarkScheme(): Boolean = MaterialTheme.colorScheme.background.luminance() < 0.22f
-
-/** Карточка секции: скруглённая, с тонкой рамкой и лёгкой тенью (стиль TgAuto). */
-@Composable
-fun AppCard(
-    modifier: Modifier = Modifier,
-    contentPadding: PaddingValues = PaddingValues(18.dp),
-    verticalArrangement: Arrangement.Vertical = Arrangement.spacedBy(12.dp),
-    content: @Composable ColumnScope.() -> Unit,
-) {
-    val c = MaterialTheme.colorScheme
-    val dark = isDarkScheme()
-    Surface(
-        shape = RoundedCornerShape(28.dp),
-        color = if (dark) lerp(c.surface, c.primaryContainer, 0.20f) else lerp(c.surface, c.surfaceVariant, 0.28f),
-        border = BorderStroke(1.dp, c.outlineVariant.copy(alpha = if (dark) 0.52f else 0.24f)),
-        shadowElevation = 6.dp,
-        tonalElevation = 2.dp,
-        modifier = modifier.fillMaxWidth(),
+fun TabHeader(title: String, actions: @Composable RowScope.() -> Unit = {}) {
+    Row(
+        modifier = Modifier.fillMaxWidth().height(48.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Column(Modifier.fillMaxWidth().padding(contentPadding), verticalArrangement = verticalArrangement, content = content)
+        Text(
+            title,
+            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        Row(verticalAlignment = Alignment.CenterVertically, content = actions)
     }
 }
 
-class NavItem(val label: String, val icon: ImageVector)
-
-/** Нижняя навигация-«пилюля»: плавающая плашка с анимированным индикатором активного пункта. */
 @Composable
-fun PillNavigationBar(items: List<NavItem>, selected: Int, onSelect: (Int) -> Unit, modifier: Modifier = Modifier) {
-    val c = MaterialTheme.colorScheme
-    val dark = isDarkScheme()
-    val shell = if (dark) c.surface.copy(alpha = 0.92f) else lerp(c.surface, c.surfaceVariant, 0.48f).copy(alpha = 0.96f)
-    val indicator = if (dark) c.primaryContainer.copy(alpha = 0.85f) else lerp(c.primaryContainer, c.surface, 0.18f)
-    val index by animateFloatAsState(selected.toFloat(), tween(520, easing = CubicBezierEasing(0.2f, 0.9f, 0.24f, 1f)), label = "pill")
-    val unselected = c.onSurfaceVariant.copy(alpha = 0.6f)
+fun SectionHeader(icon: ImageVector, title: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+        Spacer(Modifier.width(10.dp))
+        Text(
+            title,
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.primary
+        )
+    }
+}
 
-    BoxWithConstraints(
-        modifier.fillMaxWidth()
-            .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom))
-            .padding(horizontal = 22.dp, vertical = 12.dp),
+@Composable
+fun SectionDivider() {
+    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
+}
+
+@Composable
+fun Hint(text: String, color: Color = MaterialTheme.colorScheme.onSurfaceVariant) {
+    Text(text, style = MaterialTheme.typography.bodySmall, color = color)
+}
+
+@Composable
+fun AppTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    modifier: Modifier = Modifier,
+    placeholder: String? = null,
+    leadingIcon: ImageVector? = null,
+    singleLine: Boolean = true,
+    enabled: Boolean = true,
+    supporting: String? = null,
+    isError: Boolean = false,
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        label = { Text(label) },
+        placeholder = placeholder?.let { { Text(it) } },
+        leadingIcon = leadingIcon?.let { { Icon(it, contentDescription = null) } },
+        singleLine = singleLine,
+        enabled = enabled,
+        isError = isError,
+        shape = RoundedCornerShape(24.dp),
+        supportingText = supporting?.let { { Text(it) } },
+        colors = OutlinedTextFieldDefaults.colors(
+            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+        ),
+        modifier = modifier.fillMaxWidth()
+    )
+}
+
+/** Segmented choice button in the reference app's style (48dp, pill shape). */
+@Composable
+fun ChoiceButton(label: String, selected: Boolean, modifier: Modifier = Modifier, enabled: Boolean = true, onClick: () -> Unit) {
+    Button(
+        onClick = onClick,
+        enabled = enabled,
+        shape = RoundedCornerShape(24.dp),
+        modifier = modifier.height(48.dp),
+        contentPadding = PaddingValues(horizontal = 8.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+            contentColor = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+        )
     ) {
-        val pad = 8.dp
-        val itemW = (maxWidth - pad * 2) / items.size
-        Surface(
-            shape = RoundedCornerShape(28.dp), color = shell,
-            border = BorderStroke(1.dp, if (dark) c.outlineVariant.copy(alpha = 0.42f) else c.outline.copy(alpha = 0.16f)),
-            shadowElevation = 8.dp, modifier = Modifier.fillMaxWidth(),
-        ) {
-            Box(Modifier.fillMaxWidth().height(72.dp)) {
-                Surface(
-                    shape = RoundedCornerShape(22.dp), color = indicator,
-                    modifier = Modifier.offset(x = pad + itemW * index).padding(vertical = 6.dp).width(itemW).fillMaxHeight(),
-                ) {}
-                Row(Modifier.fillMaxSize().padding(horizontal = pad, vertical = 6.dp)) {
-                    items.forEachIndexed { i, item ->
-                        val emphasis = (1f - abs(i - index)).coerceIn(0f, 1f)
-                        val tint = lerp(unselected, c.primary, emphasis)
-                        Column(
-                            Modifier.weight(1f).fillMaxHeight().clip(RoundedCornerShape(22.dp)).clickable { onSelect(i) },
-                            verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally,
-                        ) {
-                            Icon(item.icon, item.label, Modifier.size(22.dp), tint = tint)
-                            Spacer(Modifier.height(4.dp))
-                            Text(
-                                item.label, style = MaterialTheme.typography.labelSmall, color = tint, maxLines = 1,
-                                fontWeight = if (emphasis > 0.55f) FontWeight.SemiBold else FontWeight.Medium,
-                            )
-                        }
-                    }
+        Text(label, style = MaterialTheme.typography.labelLarge,
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium, maxLines = 1)
+    }
+}
+
+/** The big 52dp action button from the reference connection screen. */
+@Composable
+fun BigButton(
+    text: String,
+    icon: ImageVector?,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    danger: Boolean = false,
+    loading: Boolean = false,
+) {
+    val colors = MaterialTheme.colorScheme
+    Button(
+        onClick = onClick,
+        enabled = enabled && !loading,
+        shape = RoundedCornerShape(24.dp),
+        modifier = modifier.fillMaxWidth().height(52.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = if (danger) colors.errorContainer else colors.primaryContainer,
+            contentColor = if (danger) colors.onErrorContainer else colors.onPrimaryContainer,
+        )
+    ) {
+        if (loading) {
+            CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp, color = LocalContentColor.current)
+        } else if (icon != null) {
+            Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp))
+        }
+        Spacer(Modifier.width(10.dp))
+        Text(text, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+    }
+}
+
+@Composable
+fun StatusPill(text: String, color: Color) {
+    Surface(shape = RoundedCornerShape(50), color = color.copy(alpha = 0.14f)) {
+        Row(Modifier.padding(horizontal = 10.dp, vertical = 5.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(8.dp).background(color, CircleShape))
+            Spacer(Modifier.width(6.dp))
+            Text(text, style = MaterialTheme.typography.labelMedium, color = color, fontWeight = FontWeight.SemiBold)
+        }
+    }
+}
+
+@Composable
+fun SwitchRow(title: String, subtitle: String?, checked: Boolean, enabled: Boolean = true, onChange: (Boolean) -> Unit) {
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
+            if (subtitle != null) Hint(subtitle)
+        }
+        Spacer(Modifier.width(12.dp))
+        Switch(checked = checked, onCheckedChange = onChange, enabled = enabled)
+    }
+}
+
+/**
+ * Ряд кнопок выбора (ChoiceButton), как переключатели темы и палитры в TgAuto.
+ * Если пунктов больше [perRow], они переносятся на следующую строку; неполная строка добивается пустыми местами.
+ */
+@Composable
+fun <T> ChoiceRow(items: List<T>, selected: T?, title: (T) -> String, perRow: Int = 3, onSelect: (T) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        items.chunked(perRow).forEach { row ->
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                row.forEach { item ->
+                    ChoiceButton(title(item), item == selected, Modifier.weight(1f)) { onSelect(item) }
                 }
+                repeat(perRow - row.size) { Spacer(Modifier.weight(1f)) }
             }
         }
     }
 }
 
-/** Цвет-подложка под иконку в карточках. */
+/** Подпись над группой контролов внутри карточки (как «Тема» и «Палитра» в TgAuto). */
 @Composable
-fun accentContainer(): Color = MaterialTheme.colorScheme.primaryContainer
-
-/** Фоновые «шары» цвета палитры (как в TgAuto): мягкое свечение за контентом. */
-@Composable
-fun AppBackdrop() {
-    val c = MaterialTheme.colorScheme
-    val dark = isDarkScheme()
-    val a = if (dark) 0.22f else 0.30f
-    androidx.compose.foundation.Canvas(Modifier.fillMaxSize()) {
-        drawCircle(
-            androidx.compose.ui.graphics.Brush.radialGradient(listOf(c.primaryContainer.copy(alpha = a), Color.Transparent), Offset(size.width * 0.9f, size.height * 0.05f), size.width * 0.7f),
-            radius = size.width * 0.7f, center = Offset(size.width * 0.9f, size.height * 0.05f),
-        )
-        drawCircle(
-            androidx.compose.ui.graphics.Brush.radialGradient(listOf(c.secondaryContainer.copy(alpha = a), Color.Transparent), Offset(size.width * 0.05f, size.height * 0.85f), size.width * 0.8f),
-            radius = size.width * 0.8f, center = Offset(size.width * 0.05f, size.height * 0.85f),
-        )
-    }
+fun FieldLabel(text: String) {
+    Text(text, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
 }

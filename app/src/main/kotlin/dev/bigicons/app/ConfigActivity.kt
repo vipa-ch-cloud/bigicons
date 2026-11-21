@@ -12,56 +12,36 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.Button
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import dev.bigicons.app.model.ConfigStore
 import dev.bigicons.app.model.WidgetConfig
 import dev.bigicons.app.render.IconSource
-import dev.bigicons.app.ui.AppCard
-import dev.bigicons.app.ui.AppEntry
-import dev.bigicons.app.ui.BigIconsTheme
-import dev.bigicons.app.ui.SectionTitle
-import dev.bigicons.app.ui.StyleOptions
-import dev.bigicons.app.ui.WidgetPreview
-import dev.bigicons.app.ui.loadApps
+import dev.bigicons.app.ui.*
 import dev.bigicons.app.widget.WidgetUpdater
 import java.io.File
 
@@ -126,7 +106,6 @@ private fun importIcon(ctx: android.content.Context, uri: Uri, out: File): Boole
     true
 }.getOrDefault(false)
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ConfigScreen(
     initial: WidgetConfig, isNew: Boolean, wDp: Int, hDp: Int, widgetId: Int,
@@ -135,6 +114,7 @@ private fun ConfigScreen(
     val ctx = LocalContext.current
     var cfg by remember { mutableStateOf(initial) }
     var picking by remember { mutableStateOf(isNew && initial.pkg == null) }
+    var apps by remember { mutableStateOf<List<AppEntry>?>(null) }
     var iconTick by remember { mutableStateOf(0) }
     val pickImage = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         if (uri != null) {
@@ -143,98 +123,48 @@ private fun ConfigScreen(
         }
     }
     val appLabel = remember(cfg.pkg) { IconSource.appLabel(ctx, cfg.pkg) }
+    LaunchedEffect(picking) { if (picking && apps == null) apps = loadApps(ctx) }
 
-    if (picking) {
-        AppPicker(onPick = { cfg = cfg.copy(pkg = it); picking = false }, onBack = {
-            if (cfg.pkg != null || cfg.customIcon != null) picking = false else onCancel()
-        })
-        return
-    }
-
-    Scaffold(
-        containerColor = MaterialTheme.colorScheme.background,
-        contentColor = MaterialTheme.colorScheme.onBackground,
-        topBar = {
-            TopAppBar(
-                title = { Text("Настройка виджета") },
-                navigationIcon = { IconButton(onCancel) { Icon(Icons.Filled.Close, "Отмена") } },
-            )
-        },
-        floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = { onDone(cfg) },
-                shape = MaterialTheme.shapes.large,
-                icon = { Icon(Icons.Filled.Check, null) },
-                text = { Text("Готово") },
-            )
-        },
-    ) { pad ->
-        Column(
-            Modifier.padding(pad).fillMaxSize().verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp).padding(bottom = 96.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
+    Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+        ConfigScaffold(
+            title = "Настройка виджета",
+            subtitle = appLabel ?: cfg.pkg,
+            onClose = onCancel,
+            actions = {
+                BigButton("Отмена", Icons.Default.Close, onCancel, Modifier.weight(1f))
+                BigButton("Готово", Icons.Default.Check, { onDone(cfg) }, Modifier.weight(1f))
+            },
         ) {
             WidgetPreview(cfg, wDp, hDp, key = iconTick)
-            AppCard {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    SectionTitle("Приложение")
-                    Text(appLabel ?: cfg.pkg ?: "Не выбрано", style = MaterialTheme.typography.titleMedium)
-                    Button(onClick = { picking = true }, Modifier.fillMaxWidth()) { Text("Выбрать приложение") }
-                    SectionTitle("Своя иконка")
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedButton(onClick = {
-                            pickImage.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-                        }, Modifier.weight(1f)) { Text("Выбрать картинку") }
-                        if (cfg.customIcon != null) {
-                            OutlinedButton(onClick = { cfg = cfg.copy(customIcon = null) }) { Text("Убрать") }
-                        }
+            AppSectionCard {
+                SectionHeader(Icons.Default.Settings, "Приложение")
+                Text(appLabel ?: cfg.pkg ?: "Не выбрано", style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
+                BigButton("Выбрать приложение", Icons.Default.Search, { picking = true })
+            }
+            AppSectionCard {
+                SectionHeader(Icons.Default.Add, "Своя иконка")
+                Hint("Своя картинка проходит ту же маску и цветовую обработку.")
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    BigButton("Выбрать картинку", Icons.Default.Add, modifier = Modifier.weight(1f), onClick = {
+                        pickImage.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                    })
+                    if (cfg.customIcon != null) {
+                        BigButton("Убрать", Icons.Default.Delete, modifier = Modifier.weight(1f), danger = true,
+                            onClick = { cfg = cfg.copy(customIcon = null) })
                     }
-                    Text(
-                        "Своя картинка проходит ту же маску и цветовую обработку.",
-                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
                 }
             }
-            AppCard { StyleOptions(cfg) { cfg = it } }
+            StyleSections(cfg) { cfg = it }
+            Spacer(Modifier.height(8.dp))
         }
     }
-}
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun AppPicker(onPick: (String) -> Unit, onBack: () -> Unit) {
-    val ctx = LocalContext.current
-    var apps by remember { mutableStateOf<List<AppEntry>?>(null) }
-    var query by remember { mutableStateOf("") }
-    LaunchedEffect(Unit) { apps = loadApps(ctx) }
-    Scaffold(containerColor = MaterialTheme.colorScheme.background, contentColor = MaterialTheme.colorScheme.onBackground, topBar = {
-        TopAppBar(
-            title = { Text("Выбор приложения") },
-            navigationIcon = { IconButton(onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Назад") } },
+    if (picking) {
+        AppPickerDialog(
+            apps = apps,
+            onPick = { cfg = cfg.copy(pkg = it); picking = false },
+            onDismiss = { if (cfg.pkg != null || cfg.customIcon != null) picking = false else onCancel() },
         )
-    }) { pad ->
-        Column(Modifier.padding(pad).padding(horizontal = 16.dp)) {
-            OutlinedTextField(
-                query, { query = it }, Modifier.fillMaxWidth(), singleLine = true,
-                placeholder = { Text("Поиск") }, leadingIcon = { Icon(Icons.Filled.Search, null) },
-            )
-            val list = apps?.filter { it.label.contains(query, true) || it.pkg.contains(query, true) }
-            if (list == null) Text("Загрузка…", Modifier.padding(16.dp))
-            else LazyColumn(contentPadding = PaddingValues(vertical = 8.dp)) {
-                items(list, key = { it.pkg }) { a ->
-                    Row(
-                        Modifier.fillMaxWidth().clickable { onPick(a.pkg) }.padding(vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(14.dp),
-                    ) {
-                        Image(a.icon, null, Modifier.size(44.dp))
-                        Column {
-                            Text(a.label, style = MaterialTheme.typography.bodyLarge)
-                            Text(a.pkg, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    }
-                }
-            }
-        }
     }
 }

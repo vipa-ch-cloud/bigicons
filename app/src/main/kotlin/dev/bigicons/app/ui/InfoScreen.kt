@@ -11,10 +11,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -30,8 +33,7 @@ private fun versionName(ctx: Context): String = runCatching {
 }.getOrNull() ?: "?"
 
 @Composable
-private fun Muted(text: String) =
-    Text(text, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+private fun Muted(text: String) = Hint(text)
 
 @Composable
 private fun LinkRow(title: String, subtitle: String, url: String) {
@@ -64,56 +66,60 @@ fun InfoScreen(bottomReserve: Dp) {
     val version = remember { versionName(ctx) }
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState())
-            .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = bottomReserve + 16.dp),
+            .padding(start = 16.dp, end = 16.dp, bottom = bottomReserve),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        AppCard {
-            Text("BigIcons", style = MaterialTheme.typography.titleLarge)
-            Muted("Версия $version")
-            Text("Виджеты-иконки: крупные иконки приложений любого размера с формой, цветом и растяжением на выбор, включая цвета Material You.")
-            Text("Как пользоваться", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
-            Text("1. Нажмите «Добавить виджет» на вкладке «Виджеты» или добавьте виджет BigIcons с рабочего стола.\n" +
+        TabHeader("Инфо")
+        AppSectionCard {
+            SectionHeader(Icons.Default.Info, "О приложении")
+            Text("BigIcons $version", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+            Hint("Виджеты-иконки: крупные иконки приложений любого размера с формой, цветом и растяжением на выбор, включая цвета Material You.")
+            SectionDivider()
+            Text("Как пользоваться", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
+            Hint("1. Нажмите «Добавить виджет» на вкладке «Виджеты» или добавьте виджет BigIcons с рабочего стола.\n" +
                 "2. Выберите приложение и стиль.\n" +
                 "3. Размер виджета можно менять: иконка перерисуется.\n" +
-                "4. Нажатие по виджету запускает приложение.", style = MaterialTheme.typography.bodyMedium)
-            Muted("Лаунчер не сообщает форму своих иконок, поэтому «Как в системе» берёт системную маску. Итоговый размер виджета определяет лаунчер.")
-            HorizontalDivider()
+                "4. Нажатие по виджету запускает приложение.")
+            Hint("Лаунчер не сообщает форму своих иконок, поэтому «Как в системе» берёт системную маску. Итоговый размер виджета определяет лаунчер.")
             LinkRow("Репозиторий проекта", AppLinks.REPO, AppLinks.REPO)
         }
 
-        AppCard {
-            Text("Поддержать автора", style = MaterialTheme.typography.titleMedium)
-            Muted("Скоро: донат-алерт / Boosty. Приложение бесплатное, поддержка добровольная.")
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Button({ openUrl(ctx, AppLinks.DONATE_ALERTS) }, enabled = AppLinks.DONATE_ALERTS.isNotBlank(), modifier = Modifier.weight(1f)) {
-                    Text(if (AppLinks.DONATE_ALERTS.isBlank()) "Донат (скоро)" else "Донат", maxLines = 1)
-                }
-                OutlinedButton({ openUrl(ctx, AppLinks.BOOSTY) }, enabled = AppLinks.BOOSTY.isNotBlank(), modifier = Modifier.weight(1f)) {
-                    Text(if (AppLinks.BOOSTY.isBlank()) "Boosty (скоро)" else "Boosty", maxLines = 1)
-                }
+        AppSectionCard {
+            SectionHeader(Icons.Default.Favorite, "Поддержать автора")
+            Hint("Скоро: донат-алерт / Boosty. Приложение бесплатное, поддержка добровольная.")
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                BigButton(
+                    if (AppLinks.DONATE_ALERTS.isBlank()) "Донат (скоро)" else "Донат", Icons.Default.Favorite,
+                    { openUrl(ctx, AppLinks.DONATE_ALERTS) }, Modifier.weight(1f), enabled = AppLinks.DONATE_ALERTS.isNotBlank(),
+                )
+                BigButton(
+                    if (AppLinks.BOOSTY.isBlank()) "Boosty (скоро)" else "Boosty", null,
+                    { openUrl(ctx, AppLinks.BOOSTY) }, Modifier.weight(1f), enabled = AppLinks.BOOSTY.isNotBlank(),
+                )
             }
         }
 
-        AppCard {
-            Text("Участники", style = MaterialTheme.typography.titleMedium)
-            Text("Разработчики", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
+        AppSectionCard {
+            SectionHeader(Icons.Default.Person, "Участники")
+            Text("Разработчики", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
             PeopleList(People.developers, "")
-            HorizontalDivider()
-            Text("Поддержавшие", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
+            SectionDivider()
+            Text("Поддержавшие", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
             PeopleList(People.supporters, "Здесь будут те, кто поддержал проект")
         }
 
-        AppCard {
-            Text("Исходники и благодарности", style = MaterialTheme.typography.titleMedium)
+        AppSectionCard {
+            SectionHeader(Icons.Default.Info, "Исходники и благодарности")
             LinkRow("TgWsProxyAndroid (amurcanov)", "Источник стиля интерфейса, лицензия GPL-3.0", AppLinks.TG_WS_PROXY_ANDROID)
-            Muted("Оформление (лавандовая палитра, карточки, нижняя навигация-пилюля) повторяет TgWsProxyAndroid и TgAuto.")
-            Text("Библиотеки", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
+            Muted("Оформление (палитры, карточки, фон, нижняя навигация-пилюля) повторяет TgWsProxyAndroid и TgAuto.")
+            SectionDivider()
+            Text("Библиотеки", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
             Muted("Jetpack Compose, Material 3, AndroidX Core / Activity / Lifecycle (Apache License 2.0).")
             LinkRow("Лицензия BigIcons", "GNU GPL версии 3 (файл LICENSE в репозитории)", AppLinks.LICENSE_URL)
         }
 
-        AppCard {
-            Text("Другие проекты", style = MaterialTheme.typography.titleMedium)
+        AppSectionCard {
+            SectionHeader(Icons.Default.Star, "Другие проекты")
             LinkRow("TgAuto", "Автоматизация Telegram-скриптами на Android", AppLinks.TGAUTO)
             LinkRow("AsciiWall", "ASCII-обои и анимации", AppLinks.ASCIIWALL)
         }
